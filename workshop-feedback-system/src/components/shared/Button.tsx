@@ -1,5 +1,6 @@
 import React from 'react';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion } from 'framer-motion';
+import type { HTMLMotionProps } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
 interface ButtonProps extends HTMLMotionProps<"button"> {
@@ -52,7 +53,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         )}
         {!isLoading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-        {children}
+        {children as React.ReactNode}
         {!isLoading && rightIcon && <span className="ml-2">{rightIcon}</span>}
       </motion.button>
     );
