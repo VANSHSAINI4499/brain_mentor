@@ -16,14 +16,7 @@ try {
   console.log('✅ Cloud Functions build successful.\n');
 
   // 3. Verify mock data exists
-  console.log('3. Checking Mock Data layer...');
-  const mockWorkshopsPath = path.join(process.cwd(), 'src/data/mockWorkshops.ts');
-  const mockSubmissionsPath = path.join(process.cwd(), 'src/data/mockSubmissions.ts');
-  if (fs.existsSync(mockWorkshopsPath) && fs.existsSync(mockSubmissionsPath)) {
-    console.log('✅ Mock data files present.\n');
-  } else {
-    throw new Error('Mock data files missing.');
-  }
+  console.log('✅ Mock data services permanently removed');
 
   // 4. Run tests
   console.log('4. Running Unit & Integration Tests...');

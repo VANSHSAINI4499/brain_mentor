@@ -1,3 +1,13 @@
+export const convertTimestamp = (value: any) => {
+  if (value?.toDate) return value.toDate();
+  return value;
+};
+
+export const safeDate = (value: any) => {
+  if (value?.toDate) return value.toDate();
+  return new Date(value);
+};
+
 export function normalizeDate(dateValue: any): Date {
   if (!dateValue) {
     return new Date();

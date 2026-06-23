@@ -1,11 +1,5 @@
-import { httpsCallable } from 'firebase/functions';
-import { functions } from './firebase';
-
-// TODO: Set USE_MOCKS to false once Firebase CLI access is restored
-const USE_MOCKS = true;
-const NETWORK_DELAY = 1200;
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { collection, addDoc, getDocs, getDoc, doc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 
 export interface SubmitFeedbackPayload {
   workshopId: string;
@@ -14,8 +8,17 @@ export interface SubmitFeedbackPayload {
   phone: string;
   email: string;
   feedback: string;
+  rating?: number;
   phoneVerified: boolean;
   emailVerified: boolean;
+}
+
+export interface Submission extends SubmitFeedbackPayload {
+  id: string;
+  certificateStatus: 'pending' | 'sent' | 'failed';
+  emailStatus: 'pending' | 'sent' | 'failed';
+  whatsappStatus: 'pending' | 'sent' | 'failed';
+  submittedAt: any;
 }
 
 export interface SubmitFeedbackResponse {
@@ -23,21 +26,44 @@ export interface SubmitFeedbackResponse {
   id: string;
 }
 
+const SUBMISSIONS_COLLECTION = 'submissions';
+
 export const submissionService = {
   submitFeedback: async (payload: SubmitFeedbackPayload): Promise<SubmitFeedbackResponse> => {
-    if (USE_MOCKS) {
-      await delay(NETWORK_DELAY);
-      console.log('[Mock] Feedback submitted:', payload);
-      // Generate a mock deterministic ID for the frontend to use if needed
-      const mockId = `${payload.workshopId}_${payload.phone}_${payload.email}`;
-      return { success: true, id: mockId };
-    }
+    const submissionData = {
+      ...payload,
+      certificateStatus: 'pending',
+      emailStatus: 'pending',
+      whatsappStatus: 'pending',
+      submittedAt: serverTimestamp(),
+    };
+    
+    const docRef = await addDoc(collection(db, SUBMISSIONS_COLLECTION), submissionData);
+    return { success: true, id: docRef.id };
+  },
 
-    const submitFn = httpsCallable<SubmitFeedbackPayload, SubmitFeedbackResponse>(
-      functions,
-      'submitFeedback'
+  getSubmissions: async (): Promise<Submission[]> => {
+    const q = query(collection(db, SUBMISSIONS_COLLECTION), orderBy('submittedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Submission));
+  },
+
+  getSubmissionsByWorkshop: async (workshopId: string): Promise<Submission[]> => {
+    const q = query(
+      collection(db, SUBMISSIONS_COLLECTION),
+      where('workshopId', '==', workshopId),
+      orderBy('submittedAt', 'desc')
     );
-    const result = await submitFn(payload);
-    return result.data;
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Submission));
+  },
+
+  getSubmissionById: async (id: string): Promise<Submission | null> => {
+    const docRef = doc(db, SUBMISSIONS_COLLECTION, id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Submission;
+    }
+    return null;
   }
 };

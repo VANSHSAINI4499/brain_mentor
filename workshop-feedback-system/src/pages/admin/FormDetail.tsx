@@ -9,10 +9,11 @@ import {
   ArrowLeft, Download, Users, Star, Activity, Award, Search, ChevronLeft, ChevronRight, FileText, Mail, MessageCircle
 } from 'lucide-react';
 import { workshopService } from '../../services/workshopService';
-import { mockSubmissions } from '../../data/mockSubmissions';
+import { submissionService } from '../../services/submissionService';
 import type { Workshop } from '../../types/workshop';
+import type { Submission } from '../../services/submissionService';
 import { exportToCsv } from '../../utils/exportCsv';
-import { formatDate, formatDateTime } from '../../utils/date';
+import { formatDate, formatDateTime, safeDate } from '../../utils/date';
 import { Button } from '../../components/shared/Button';
 import { Loader } from '../../components/shared/Loader';
 
@@ -23,22 +24,45 @@ const FormDetail: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [workshop, setWorkshop] = useState<Workshop | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [indexError, setIndexError] = useState(false);
 
   React.useEffect(() => {
     if (id) {
-      workshopService.getWorkshop(id).then(data => {
-        setWorkshop(data);
+      Promise.all([
+        workshopService.getWorkshopById(id),
+        submissionService.getSubmissionsByWorkshop(id).catch(error => {
+          console.error("Firestore Query Error:", error);
+          if (error.message && error.message.includes('index')) {
+            setIndexError(true);
+          }
+          return [];
+        })
+      ]).then(([workshopData, submissionsData]) => {
+        setWorkshop(workshopData);
+        setSubmissions(submissionsData);
+        setLoading(false);
+      }).catch(error => {
+        console.error("Firestore Query Error:", error);
         setLoading(false);
       });
     }
   }, [id]);
   const itemsPerPage = 5;
 
-  const submissions = mockSubmissions.filter(s => s.workshopId === id);
-
   if (loading) {
     return <Loader fullScreen text="Loading analytics..." />;
+  }
+
+  if (indexError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-amber-600 bg-amber-50 rounded-xl border border-amber-200 m-6">
+        <h2 className="text-xl font-bold mb-2">Indexing in Progress</h2>
+        <p>Analytics data is still indexing. Please try again in a few minutes.</p>
+        <Link to="/admin/dashboard" className="mt-4 text-indigo-600 hover:underline">Return to Dashboard</Link>
+      </div>
+    );
   }
 
   if (!workshop) {
@@ -77,7 +101,7 @@ const FormDetail: React.FC = () => {
   const submissionTrend = useMemo(() => {
     const trend: Record<string, number> = {};
     submissions.forEach(s => {
-      const date = formatDate(s.submittedAt, { month: 'short', day: 'numeric' });
+      const date = formatDate(safeDate(s.submittedAt), { month: 'short', day: 'numeric' });
       trend[date] = (trend[date] || 0) + 1;
     });
     return Object.entries(trend).map(([date, count]) => ({ date, count }));
@@ -104,7 +128,7 @@ const FormDetail: React.FC = () => {
       Rating: s.rating,
       Feedback: s.feedback,
       'Certificate Status': s.certificateStatus,
-      'Submitted At': formatDateTime(s.submittedAt)
+      'Submitted At': formatDateTime(safeDate(s.submittedAt))
     }));
     exportToCsv(`${workshop.workshopName.replace(/\s+/g, '_')}_feedback.csv`, exportData);
   };

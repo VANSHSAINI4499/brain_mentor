@@ -6,59 +6,45 @@ import {
 import type { User as FirebaseUser } from 'firebase/auth';
 import { auth } from './firebase';
 
-// TODO: Set USE_MOCKS to false once Firebase Auth is enabled
-const USE_MOCKS = true;
-const MOCK_DELAY = 1000;
-
 export interface AppUser {
   uid: string;
   email: string | null;
 }
 
-type AuthStateCallback = (user: AppUser | null) => void;
+export type AuthStateCallback = (user: AppUser | null) => void;
 
-interface AuthService {
+export interface AuthService {
   signIn: (email: string, pass: string) => Promise<AppUser>;
   signOut: () => Promise<void>;
   onAuthStateChanged: (callback: AuthStateCallback) => () => void;
 }
 
-// Global mock state
-let mockCurrentUser: AppUser | null = null;
-const mockSubscribers: Set<AuthStateCallback> = new Set();
-
-const notifySubscribers = () => {
-  mockSubscribers.forEach((cb) => cb(mockCurrentUser));
-};
-
-const mockAuthService: AuthService = {
-  signIn: async (email: string, pass: string) => {
-    await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY));
-    if (email === 'admin@example.com' && pass === 'admin123') {
-      const user = { uid: 'mock-admin-123', email: 'admin@example.com' };
-      mockCurrentUser = user;
-      notifySubscribers();
-      return user;
-    }
-    throw new Error('Invalid email or password');
-  },
-  signOut: async () => {
-    await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY));
-    mockCurrentUser = null;
-    notifySubscribers();
-  },
-  onAuthStateChanged: (callback: AuthStateCallback) => {
-    mockSubscribers.add(callback);
-    // Immediately invoke with current state
-    callback(mockCurrentUser);
-    return () => mockSubscribers.delete(callback);
-  }
-};
-
 const firebaseAuthService: AuthService = {
   signIn: async (email: string, pass: string) => {
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
-    return { uid: cred.user.uid, email: cred.user.email };
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pass);
+      return { uid: cred.user.uid, email: cred.user.email };
+    } catch (error: any) {
+      console.error("Firebase Login Error:", error);
+      console.error("Error Code:", error.code);
+
+      switch (error.code) {
+        case "auth/invalid-credential":
+          throw new Error("Invalid email or password.");
+        case "auth/user-not-found":
+          throw new Error("No account exists with this email.");
+        case "auth/wrong-password":
+          throw new Error("Incorrect password.");
+        case "auth/invalid-email":
+          throw new Error("Please enter a valid email address.");
+        case "auth/too-many-requests":
+          throw new Error("Too many failed attempts. Please try again later.");
+        case "auth/network-request-failed":
+          throw new Error("Network error. Check your internet connection.");
+        default:
+          throw new Error(`Firebase Auth Error: ${error.code}`);
+      }
+    }
   },
   signOut: async () => {
     await firebaseSignOut(auth);
@@ -74,4 +60,4 @@ const firebaseAuthService: AuthService = {
   }
 };
 
-export const authService: AuthService = USE_MOCKS ? mockAuthService : firebaseAuthService;
+export const authService: AuthService = firebaseAuthService;

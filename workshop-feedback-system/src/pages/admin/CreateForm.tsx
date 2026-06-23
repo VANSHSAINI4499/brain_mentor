@@ -64,7 +64,7 @@ const CreateForm: React.FC = () => {
 
   useEffect(() => {
     if (editId) {
-      workshopService.getWorkshop(editId).then((workshop) => {
+      workshopService.getWorkshopById(editId).then((workshop) => {
         if (workshop) {
           const dateObj = normalizeDate(workshop.dateTime);
           setValue('workshopName', workshop.workshopName);

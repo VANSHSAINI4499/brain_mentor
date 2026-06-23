@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { Input } from '../../components/shared/Input';
 import { Button } from '../../components/shared/Button';
+import { auth } from '../../services/firebase';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -42,6 +43,9 @@ const Login: React.FC = () => {
       await signIn(data.email, data.password);
       navigate(from, { replace: true });
     } catch (error: any) {
+      console.log("Project ID:", auth.app.options.projectId);
+      console.log("Auth Domain:", auth.app.options.authDomain);
+      console.log("Login Email:", data.email);
       setAuthError(error.message || 'Failed to login. Please check your credentials.');
     }
   };
@@ -63,7 +67,7 @@ const Login: React.FC = () => {
           <Input
             label="Email Address"
             type="email"
-            placeholder="admin@example.com"
+            placeholder="Enter your email"
             error={errors.email?.message}
             {...register('email')}
           />
@@ -96,12 +100,7 @@ const Login: React.FC = () => {
           </Button>
         </form>
         
-        <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-          <p className="text-sm text-slate-500">
-            For demo purposes, use: <br/>
-            <span className="font-medium text-slate-700">admin@example.com</span> / <span className="font-medium text-slate-700">admin123</span>
-          </p>
-        </div>
+
       </motion.div>
     </div>
   );

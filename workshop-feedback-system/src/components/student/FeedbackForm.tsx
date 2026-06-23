@@ -16,6 +16,7 @@ import {
   feedbackSubmissionSchema
 } from '../../utils/validators';
 import type { FeedbackFormData } from '../../utils/validators';
+import { submissionService } from '../../services/submissionService';
 
 const TOTAL_STEPS = 3;
 
@@ -122,11 +123,23 @@ export const FeedbackForm: React.FC = () => {
   const onSubmit = async (data: FeedbackFormData) => {
     setIsSubmitting(true);
     try {
-      // Simulate backend delay for final submission
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Form Submitted successfully:', data);
+      const payload = {
+        workshopId: formId || '',
+        name: data.name,
+        course: data.course,
+        phone: data.phone,
+        email: data.email,
+        feedback: data.feedback,
+        rating: (data as any).rating || 5,
+        phoneVerified: data.phoneVerified,
+        emailVerified: data.emailVerified,
+      };
+      
+      await submissionService.submitFeedback(payload);
+      toast('Feedback submitted successfully!', 'success');
       navigate(`/form/${formId}/thank-you`);
     } catch (err) {
+      console.error('Submission error:', err);
       toast('Failed to submit feedback. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);

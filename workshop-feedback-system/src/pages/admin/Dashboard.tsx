@@ -2,13 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  BarChart, Calendar, CheckCircle, Clock, Copy, Edit, 
+  BarChart, Calendar, CheckCircle, Copy, Edit, 
   Search, Filter 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { workshopService } from '../../services/workshopService';
-import { mockSubmissions } from '../../data/mockSubmissions';
+import { submissionService } from '../../services/submissionService';
 import type { Workshop } from '../../types/workshop';
+import type { Submission } from '../../services/submissionService';
 import { exportToCsv } from '../../utils/exportCsv';
 import { formatDate } from '../../utils/date';
 import { Button } from '../../components/shared/Button';
@@ -17,17 +18,26 @@ const Dashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft' | 'inactive'>('all');
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   React.useEffect(() => {
     workshopService.getAllWorkshops().then(data => {
       setWorkshops(data);
     });
+    submissionService.getSubmissions().then(data => {
+      setSubmissions(data);
+    });
   }, []);
 
   // Derived stats
-  const totalSubmissions = mockSubmissions.length;
-  const pendingCerts = mockSubmissions.filter(s => s.certificateStatus === 'pending').length;
-  const sentCerts = mockSubmissions.filter(s => s.certificateStatus === 'sent').length;
+  const totalWorkshops = workshops.length;
+  const activeWorkshops = workshops.filter(w => w.status === 'active').length;
+  const draftWorkshops = workshops.filter(w => w.status === 'draft').length;
+  
+  const totalSubmissions = submissions.length;
+  const pendingCerts = submissions.filter(s => s.certificateStatus === 'pending').length;
+  const sentCerts = submissions.filter(s => s.certificateStatus === 'sent').length;
+  const failedCerts = submissions.filter(s => s.certificateStatus === 'failed').length;
 
   // Filtered workshops
   const filteredWorkshops = useMemo(() => {
@@ -36,7 +46,11 @@ const Dashboard: React.FC = () => {
                             w.collegeName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || w.status === statusFilter;
       return matchesSearch && matchesStatus;
-    }).sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+    }).sort((a, b) => {
+      const timeA = typeof a.createdAt?.toMillis === 'function' ? a.createdAt.toMillis() : Date.now();
+      const timeB = typeof b.createdAt?.toMillis === 'function' ? b.createdAt.toMillis() : Date.now();
+      return timeB - timeA;
+    });
   }, [workshops, searchTerm, statusFilter]);
 
   const handleCopyLink = (formLink: string) => {
@@ -51,7 +65,7 @@ const Dashboard: React.FC = () => {
       'College': w.collegeName,
       'Status': w.status,
       'Date': formatDate(w.dateTime),
-      'Submissions': mockSubmissions.filter(s => s.workshopId === w.id).length
+      'Submissions': submissions.filter(s => s.workshopId === w.id).length
     }));
     exportToCsv('workshops_export.csv', exportData);
     toast.success('Export downloaded successfully!');
@@ -76,10 +90,13 @@ const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Workshops" value={workshops.length} icon={Calendar} color="bg-blue-50 text-blue-600" />
+        <StatCard title="Total Workshops" value={totalWorkshops} icon={Calendar} color="bg-blue-50 text-blue-600" />
+        <StatCard title="Active Workshops" value={activeWorkshops} icon={CheckCircle} color="bg-emerald-50 text-emerald-600" />
+        <StatCard title="Draft Workshops" value={draftWorkshops} icon={Edit} color="bg-amber-50 text-amber-600" />
         <StatCard title="Total Submissions" value={totalSubmissions} icon={BarChart} color="bg-indigo-50 text-indigo-600" />
-        <StatCard title="Pending Certificates" value={pendingCerts} icon={Clock} color="bg-amber-50 text-amber-600" />
-        <StatCard title="Certificates Sent" value={sentCerts} icon={CheckCircle} color="bg-emerald-50 text-emerald-600" />
+        <StatCard title="Pending Certificates" value={pendingCerts} icon={CheckCircle} color="bg-amber-50 text-amber-600" />
+        <StatCard title="Sent Certificates" value={sentCerts} icon={CheckCircle} color="bg-green-50 text-green-600" />
+        <StatCard title="Failed Certificates" value={failedCerts} icon={CheckCircle} color="bg-red-50 text-red-600" />
       </div>
 
       {/* Filters and Table */}
@@ -123,7 +140,7 @@ const Dashboard: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredWorkshops.map((workshop, idx) => {
-                const subCount = mockSubmissions.filter(s => s.workshopId === workshop.id).length;
+                const subCount = submissions.filter(s => s.workshopId === workshop.id).length;
                 return (
                   <motion.tr 
                     key={workshop.id}

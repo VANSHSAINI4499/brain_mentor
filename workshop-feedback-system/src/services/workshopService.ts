@@ -1,66 +1,76 @@
-import { mockWorkshops } from '../data/mockWorkshops';
+import { 
+  collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy 
+} from 'firebase/firestore';
+import { db } from './firebase';
 import type { Workshop } from '../types/workshop';
-import { Timestamp } from 'firebase/firestore';
 
-// In a real app, this would use Firebase.
-// Here we use an in-memory store initialized with mock data.
-let localWorkshops = [...mockWorkshops];
+const WORKSHOPS_COLLECTION = 'workshops';
 
 export const workshopService = {
   async getAllWorkshops(): Promise<Workshop[]> {
-    return new Promise(resolve => setTimeout(() => resolve([...localWorkshops]), 500));
+    const q = query(collection(db, WORKSHOPS_COLLECTION), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Workshop));
   },
 
-  async getWorkshop(id: string): Promise<Workshop | null> {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        const found = localWorkshops.find(w => w.id === id);
-        resolve(found || null);
-      }, 300);
-    });
+  async getWorkshopById(id: string): Promise<Workshop | null> {
+    const docRef = doc(db, WORKSHOPS_COLLECTION, id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Workshop;
+    }
+    return null;
   },
 
-  async createWorkshop(workshop: Omit<Workshop, 'createdAt' | 'updatedAt'>): Promise<Workshop> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (localWorkshops.some(w => w.id === workshop.id)) {
-          return reject(new Error('A workshop with this slug already exists.'));
-        }
-        
-        const newWorkshop: Workshop = {
-          ...workshop,
-          createdAt: Timestamp.fromDate(new Date()),
-          updatedAt: Timestamp.fromDate(new Date()),
-        };
-        
-        localWorkshops.unshift(newWorkshop); // Add to beginning
-        resolve(newWorkshop);
-      }, 500);
-    });
+  async createWorkshop(workshopData: Omit<Workshop, 'createdAt' | 'updatedAt'>): Promise<Workshop> {
+    const docRef = doc(db, WORKSHOPS_COLLECTION, workshopData.id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      throw new Error('A workshop with this slug already exists.');
+    }
+    
+    const newWorkshop = {
+      ...workshopData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    
+    await setDoc(docRef, newWorkshop);
+    return newWorkshop as unknown as Workshop;
   },
 
   async updateWorkshop(id: string, updates: Partial<Workshop>): Promise<Workshop> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = localWorkshops.findIndex(w => w.id === id);
-        if (index === -1) {
-          return reject(new Error('Workshop not found'));
-        }
+    const docRef = doc(db, WORKSHOPS_COLLECTION, id);
+    const updatedData = {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    };
+    
+    if (updates.id && updates.id !== id) {
+      // If changing ID/slug, we need to create a new doc and delete the old one
+      const newDocRef = doc(db, WORKSHOPS_COLLECTION, updates.id);
+      const newDocSnap = await getDoc(newDocRef);
+      if (newDocSnap.exists()) {
+        throw new Error('A workshop with this new slug already exists.');
+      }
+      
+      const oldDocSnap = await getDoc(docRef);
+      if (!oldDocSnap.exists()) throw new Error('Workshop not found');
+      
+      const mergedData = { ...oldDocSnap.data(), ...updatedData };
+      await setDoc(newDocRef, mergedData);
+      await deleteDoc(docRef);
+      
+      return { id: updates.id, ...mergedData } as Workshop;
+    } else {
+      await updateDoc(docRef, updatedData);
+      const updatedSnap = await getDoc(docRef);
+      return { id: updatedSnap.id, ...updatedSnap.data() } as Workshop;
+    }
+  },
 
-        // If updating the slug, ensure it doesn't conflict
-        if (updates.id && updates.id !== id && localWorkshops.some(w => w.id === updates.id)) {
-          return reject(new Error('A workshop with this new slug already exists.'));
-        }
-
-        const updatedWorkshop: Workshop = {
-          ...localWorkshops[index],
-          ...updates,
-          updatedAt: Timestamp.fromDate(new Date()),
-        };
-        
-        localWorkshops[index] = updatedWorkshop;
-        resolve(updatedWorkshop);
-      }, 500);
-    });
+  async deleteWorkshop(id: string): Promise<void> {
+    const docRef = doc(db, WORKSHOPS_COLLECTION, id);
+    await deleteDoc(docRef);
   }
 };
