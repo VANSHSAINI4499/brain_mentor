@@ -28,10 +28,15 @@ export const certificateService = {
     let pdfDoc: PDFDocument;
     
     try {
-      const templatePath = path.join(__dirname, '../../assets/template.pdf');
-      if (fs.existsSync(templatePath)) {
-        const templateBytes = fs.readFileSync(templatePath);
-        pdfDoc = await PDFDocument.load(templateBytes);
+      // 1. Try to load from Firebase Storage
+      const bucket = require('firebase-admin').storage().bucket();
+      const file = bucket.file('certificates/templates/default-template.pdf');
+      
+      const [exists] = await file.exists();
+      
+      if (exists) {
+        const [templateBuffer] = await file.download();
+        pdfDoc = await PDFDocument.load(templateBuffer);
       } else {
         // Fallback: create a blank landscape PDF
         pdfDoc = await PDFDocument.create();
@@ -104,8 +109,22 @@ export const certificateService = {
    * Uploads the generated PDF to Firebase Storage (Mocked for now)
    */
   async uploadCertificate(certificateNumber: string, pdfBytes: Uint8Array): Promise<string> {
-    // MOCK: In production, upload to Firebase Storage and return the signed URL.
-    return `https://storage.mock.firebase.com/certificates/${certificateNumber}.pdf`;
+    const bucket = require('firebase-admin').storage().bucket();
+    const filePath = `certificates/generated/${certificateNumber}.pdf`;
+    const file = bucket.file(filePath);
+
+    await file.save(Buffer.from(pdfBytes), {
+      contentType: 'application/pdf',
+      public: true, // Make the file publicly accessible
+    });
+
+    // In a production environment, you might want a signed URL or a public URL
+    // Here we'll generate a public URL string based on the bucket name
+    file.makePublic().catch(() => {}); // Attempt to make public, ignore errors if already public
+    
+    // Return the public URL for the file
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+    return publicUrl;
   },
 
   /**

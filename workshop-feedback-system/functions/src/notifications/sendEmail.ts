@@ -7,7 +7,7 @@ const transporter = nodemailer.createTransport({
   port: parseInt(process.env.SMTP_PORT || '587'),
   auth: {
     user: process.env.SMTP_USER || 'ethereal.user@ethereal.email',
-    pass: process.env.SMTP_PASS || 'ethereal_password'
+    pass: process.env.SMTP_PASSWORD || 'ethereal_password'
   }
 });
 
@@ -19,7 +19,7 @@ export const sendEmail = async (
 ): Promise<boolean> => {
   try {
     const mailOptions: any = {
-      from: '"Workshop Team" <noreply@workshop-feedback.app>',
+      from: process.env.SMTP_FROM || '"Workshop Team" <noreply@workshop-feedback.app>',
       to,
       subject,
       html: htmlBody,

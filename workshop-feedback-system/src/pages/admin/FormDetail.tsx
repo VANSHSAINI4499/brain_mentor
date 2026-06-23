@@ -267,6 +267,19 @@ const FormDetail: React.FC = () => {
               <p className="text-slate-700 text-sm leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100">
                 "{sub.feedback}"
               </p>
+              {sub.certificateUrl && (
+                <div className="mt-4">
+                  <a 
+                    href={sub.certificateUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Certificate
+                  </a>
+                </div>
+              )}
             </motion.div>
           )) : (
             <div className="p-8 text-center text-slate-500">No submissions found matching your search.</div>

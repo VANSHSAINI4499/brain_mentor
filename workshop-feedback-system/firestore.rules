@@ -15,11 +15,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Submissions: Admin read/update/delete, Client create allowed
-    // (Temporarily allowing client creation for testing)
+    // Submissions: Admin read/update/delete, Client create denied
+    // (All submission writes must go through Cloud Functions)
     match /submissions/{submissionId} {
       allow read, update, delete: if isAdmin();
-      allow create: if true;
+      allow create: if false;
     }
 
     // OTPs: No client access

@@ -15,9 +15,10 @@ export interface SubmitFeedbackPayload {
 
 export interface Submission extends SubmitFeedbackPayload {
   id: string;
-  certificateStatus: 'pending' | 'sent' | 'failed';
-  emailStatus: 'pending' | 'sent' | 'failed';
-  whatsappStatus: 'pending' | 'sent' | 'failed';
+  certificateStatus: 'pending' | 'processing' | 'sent' | 'failed';
+  emailStatus: 'pending' | 'processing' | 'sent' | 'failed';
+  whatsappStatus: 'pending' | 'processing' | 'sent' | 'failed';
+  certificateUrl?: string;
   submittedAt: any;
 }
 
@@ -28,18 +29,17 @@ export interface SubmitFeedbackResponse {
 
 const SUBMISSIONS_COLLECTION = 'submissions';
 
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
+
 export const submissionService = {
   submitFeedback: async (payload: SubmitFeedbackPayload): Promise<SubmitFeedbackResponse> => {
-    const submissionData = {
-      ...payload,
-      certificateStatus: 'pending',
-      emailStatus: 'pending',
-      whatsappStatus: 'pending',
-      submittedAt: serverTimestamp(),
-    };
-    
-    const docRef = await addDoc(collection(db, SUBMISSIONS_COLLECTION), submissionData);
-    return { success: true, id: docRef.id };
+    const submitFn = httpsCallable<SubmitFeedbackPayload, SubmitFeedbackResponse>(
+      functions,
+      'submitFeedback'
+    );
+    const result = await submitFn(payload);
+    return result.data;
   },
 
   getSubmissions: async (): Promise<Submission[]> => {
