@@ -1,17 +1,25 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { AdminLayout } from './components/layout/AdminLayout';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { RequireAuth } from './components/auth/RequireAuth';
+import { Loader } from './components/shared/Loader';
 
-import Login from './pages/admin/Login';
-import Dashboard from './pages/admin/Dashboard';
-import CreateForm from './pages/admin/CreateForm';
-import FormDetail from './pages/admin/FormDetail';
+const Login = lazy(() => import('./pages/admin/Login'));
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const CreateForm = lazy(() => import('./pages/admin/CreateForm'));
+const FormDetail = lazy(() => import('./pages/admin/FormDetail'));
 
-import FeedbackPage from './pages/public/FeedbackPage';
-import ThankYou from './pages/public/ThankYou';
-import NotFound from './pages/public/NotFound';
+const FeedbackPage = lazy(() => import('./pages/public/FeedbackPage'));
+const ThankYou = lazy(() => import('./pages/public/ThankYou'));
+const NotFound = lazy(() => import('./pages/public/NotFound'));
+
+const withSuspense = (Component: React.ComponentType) => (
+  <Suspense fallback={<Loader fullScreen text="Loading..." />}>
+    <Component />
+  </Suspense>
+);
 
 export const router = createBrowserRouter([
   {
@@ -24,7 +32,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin/login',
-    element: <Login />
+    element: withSuspense(Login)
   },
   {
     path: '/admin',
@@ -36,15 +44,15 @@ export const router = createBrowserRouter([
     children: [
       {
         path: 'dashboard',
-        element: <Dashboard />
+        element: withSuspense(Dashboard)
       },
       {
         path: 'create',
-        element: <CreateForm />
+        element: withSuspense(CreateForm)
       },
       {
         path: 'forms/:id',
-        element: <FormDetail />
+        element: withSuspense(FormDetail)
       }
     ]
   },
@@ -54,16 +62,17 @@ export const router = createBrowserRouter([
     children: [
       {
         path: ':formId',
-        element: <FeedbackPage />
+        element: withSuspense(FeedbackPage)
       },
       {
         path: ':formId/thank-you',
-        element: <ThankYou />
+        element: withSuspense(ThankYou)
       }
     ]
   },
   {
     path: '*',
-    element: <NotFound />
+    element: withSuspense(NotFound)
   }
 ]);
+

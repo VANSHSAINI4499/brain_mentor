@@ -1,17 +1,111 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { Input } from '../../components/shared/Input';
+import { Button } from '../../components/shared/Button';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
+  const { signIn, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [authError, setAuthError] = useState<string | null>(null);
+  
+  const from = location.state?.from?.pathname || '/admin/dashboard';
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  // If already logged in, redirect
+  if (user) {
+    return <Navigate to={from} replace />;
+  }
+
+  const onSubmit = async (data: LoginFormData) => {
+    setAuthError(null);
+    try {
+      await signIn(data.email, data.password);
+      navigate(from, { replace: true });
+    } catch (error: any) {
+      setAuthError(error.message || 'Failed to login. Please check your credentials.');
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-md w-full">
-        <h1 className="text-2xl font-bold text-slate-800 text-center mb-6">Admin Login</h1>
-        <p className="text-slate-500 text-center mb-4">Phase 1/2 functionality placeholder</p>
-        <button className="w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-700 transition-colors">
-          Login Placeholder
-        </button>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 max-w-md w-full"
+      >
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Admin Portal</h1>
+          <p className="text-slate-500">Sign in to manage workshops and feedback</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="admin@example.com"
+            error={errors.email?.message}
+            {...register('email')}
+          />
+          
+          <Input
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register('password')}
+          />
+
+          {authError && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100"
+            >
+              {authError}
+            </motion.div>
+          )}
+
+          <Button 
+            type="submit" 
+            isLoading={isSubmitting}
+            className="w-full mt-2"
+            size="lg"
+          >
+            Sign In
+          </Button>
+        </form>
+        
+        <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+          <p className="text-sm text-slate-500">
+            For demo purposes, use: <br/>
+            <span className="font-medium text-slate-700">admin@example.com</span> / <span className="font-medium text-slate-700">admin123</span>
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 };
 
 export default Login;
+

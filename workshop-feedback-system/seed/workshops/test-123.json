@@ -1,0 +1,19 @@
+{
+  "id": "test-123",
+  "collegeName": "Tech Engineering College",
+  "workshopName": "React Performance Workshop",
+  "dateTime": {
+    "_seconds": 1792886400,
+    "_nanoseconds": 0
+  },
+  "instructions": "Please fill out this feedback form to receive your participation certificate.",
+  "status": "active",
+  "createdAt": {
+    "_seconds": 1704067200,
+    "_nanoseconds": 0
+  },
+  "updatedAt": {
+    "_seconds": 1704067200,
+    "_nanoseconds": 0
+  }
+}

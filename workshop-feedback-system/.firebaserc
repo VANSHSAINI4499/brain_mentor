@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "demo-workshop-feedback",
-    "development": "your-dev-project-id",
-    "production": "your-prod-project-id"
+    "default": "brain-mentor",
+    "development": "brain-mentor",
+    "production": "brain-mentor"
   }
 }

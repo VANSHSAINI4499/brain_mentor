@@ -1,24 +1,17 @@
 import type { Timestamp } from 'firebase/firestore';
 
+export type WorkshopStatus = 'draft' | 'active' | 'inactive';
+
 export interface Workshop {
-  id: string;
+  id: string;                     // This will be the formId/slug
   collegeName: string;
   workshopName: string;
+  instructorName?: string;
+  duration?: string;
+  description?: string;
   dateTime: Timestamp;
   instructions: string;
-  status: 'draft' | 'active' | 'inactive';
-  formLink: string | null;        // unique slug, set when first activated
-  createdBy: string;              // admin uid
+  status: WorkshopStatus;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  certificateTemplateId: string | null;
-}
-
-export interface CertificateTemplate {
-  id: string;
-  workshopId: string;
-  storagePath: string;            // path in Firebase Storage
-  namePosition: { x: number; y: number; fontSize: number };
-  version: number;
-  uploadedAt: Timestamp;
 }
