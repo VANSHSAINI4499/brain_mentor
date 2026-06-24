@@ -9,12 +9,14 @@ export interface SubmitFeedbackPayload {
   email: string;
   feedback: string;
   rating?: number;
+  experience?: string;
   phoneVerified: boolean;
   emailVerified: boolean;
 }
 
 export interface Submission extends SubmitFeedbackPayload {
   id: string;
+  submissionRef: string;
   certificateStatus: 'pending' | 'processing' | 'sent' | 'failed';
   emailStatus: 'pending' | 'processing' | 'sent' | 'failed';
   whatsappStatus: 'pending' | 'processing' | 'sent' | 'failed';
@@ -25,6 +27,7 @@ export interface Submission extends SubmitFeedbackPayload {
 export interface SubmitFeedbackResponse {
   success: boolean;
   id: string;
+  submissionRef: string;
 }
 
 const SUBMISSIONS_COLLECTION = 'submissions';

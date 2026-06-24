@@ -9,6 +9,8 @@ export const submitFeedbackSchema = z.object({
   feedback: z.string().min(10, 'Feedback must be at least 10 characters'),
   phoneVerified: z.boolean().refine((val) => val === true, 'Phone must be verified'),
   emailVerified: z.boolean().refine((val) => val === true, 'Email must be verified'),
+  rating: z.number().min(1).max(5).optional(),
+  experience: z.string().optional(),
 });
 
 export type SubmitFeedbackPayload = z.infer<typeof submitFeedbackSchema>;

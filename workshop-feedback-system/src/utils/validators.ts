@@ -29,6 +29,8 @@ export const feedbackSchema = z.object({
   feedback: z.string()
     .min(10, 'Feedback must be at least 10 characters long')
     .max(1000, 'Feedback is too long (maximum 1000 characters)'),
+  rating: z.number().min(1).max(5).optional(),
+  experience: z.string().optional(),
 });
 
 export const feedbackSubmissionSchema = z.object({

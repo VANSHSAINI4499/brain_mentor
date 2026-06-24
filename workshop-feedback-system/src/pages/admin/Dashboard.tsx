@@ -36,6 +36,7 @@ const Dashboard: React.FC = () => {
   
   const totalSubmissions = submissions.length;
   const pendingCerts = submissions.filter(s => s.certificateStatus === 'pending').length;
+  const processingCerts = submissions.filter(s => s.certificateStatus === 'processing').length;
   const sentCerts = submissions.filter(s => s.certificateStatus === 'sent').length;
   const failedCerts = submissions.filter(s => s.certificateStatus === 'failed').length;
 
@@ -94,7 +95,8 @@ const Dashboard: React.FC = () => {
         <StatCard title="Active Workshops" value={activeWorkshops} icon={CheckCircle} color="bg-emerald-50 text-emerald-600" />
         <StatCard title="Draft Workshops" value={draftWorkshops} icon={Edit} color="bg-amber-50 text-amber-600" />
         <StatCard title="Total Submissions" value={totalSubmissions} icon={BarChart} color="bg-indigo-50 text-indigo-600" />
-        <StatCard title="Pending Certificates" value={pendingCerts} icon={CheckCircle} color="bg-amber-50 text-amber-600" />
+        <StatCard title="Pending Certificates" value={pendingCerts} icon={CheckCircle} color="bg-slate-50 text-slate-600" />
+        <StatCard title="Processing Certificates" value={processingCerts} icon={CheckCircle} color="bg-amber-50 text-amber-600" />
         <StatCard title="Sent Certificates" value={sentCerts} icon={CheckCircle} color="bg-green-50 text-green-600" />
         <StatCard title="Failed Certificates" value={failedCerts} icon={CheckCircle} color="bg-red-50 text-red-600" />
       </div>

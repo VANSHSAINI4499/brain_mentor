@@ -82,11 +82,24 @@ const FormDetail: React.FC = () => {
   const certsGenerated = submissions.filter(s => s.certificateStatus === 'sent').length;
   const completionRate = '100%'; // Assuming all fetched submissions are complete for now
 
+  const excellentResponses = submissions.filter(s => s.experience === 'excellent').length;
+  const goodResponses = submissions.filter(s => s.experience === 'good').length;
+  const averageResponses = submissions.filter(s => s.experience === 'average').length;
+  const poorResponses = submissions.filter(s => s.experience === 'poor').length;
+
   // Ratings Distribution
   const ratingCounts = [1, 2, 3, 4, 5].map(rating => ({
     rating: `${rating} Stars`,
     count: submissions.filter(s => s.rating === rating).length
   }));
+
+  // Experience Distribution
+  const experienceDistribution = [
+    { name: 'Excellent', value: excellentResponses },
+    { name: 'Good', value: goodResponses },
+    { name: 'Average', value: averageResponses },
+    { name: 'Poor', value: poorResponses }
+  ].filter(e => e.value > 0);
 
   // Course Distribution
   const courseDistribution = useMemo(() => {
@@ -97,14 +110,20 @@ const FormDetail: React.FC = () => {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [submissions]);
 
-  // Submissions Trend (mocking day-by-day based on the submittedAt timestamp)
-  const submissionTrend = useMemo(() => {
-    const trend: Record<string, number> = {};
+  // Submissions Trend & Average Rating Trend (day-by-day based on the submittedAt timestamp)
+  const trends = useMemo(() => {
+    const trend: Record<string, { count: number; totalRating: number }> = {};
     submissions.forEach(s => {
       const date = formatDate(safeDate(s.submittedAt), { month: 'short', day: 'numeric' });
-      trend[date] = (trend[date] || 0) + 1;
+      if (!trend[date]) trend[date] = { count: 0, totalRating: 0 };
+      trend[date].count += 1;
+      trend[date].totalRating += (s.rating || 5);
     });
-    return Object.entries(trend).map(([date, count]) => ({ date, count }));
+    return Object.entries(trend).map(([date, data]) => ({ 
+      date, 
+      count: data.count,
+      avgRating: Number((data.totalRating / data.count).toFixed(1))
+    }));
   }, [submissions]);
 
   // Pagination & Filtering
@@ -126,6 +145,7 @@ const FormDetail: React.FC = () => {
       Phone: s.phone,
       Course: s.course,
       Rating: s.rating,
+      Experience: s.experience,
       Feedback: s.feedback,
       'Certificate Status': s.certificateStatus,
       'Submitted At': formatDateTime(safeDate(s.submittedAt))
@@ -150,11 +170,15 @@ const FormDetail: React.FC = () => {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Responses" value={totalResponses} icon={Users} color="bg-blue-50 text-blue-600" />
         <StatCard title="Average Rating" value={`${avgRating} / 5`} icon={Star} color="bg-amber-50 text-amber-500" />
         <StatCard title="Completion Rate" value={completionRate} icon={Activity} color="bg-indigo-50 text-indigo-600" />
         <StatCard title="Certs Generated" value={certsGenerated} icon={Award} color="bg-emerald-50 text-emerald-600" />
+        <StatCard title="Excellent" value={excellentResponses} icon={Star} color="bg-emerald-50 text-emerald-600" />
+        <StatCard title="Good" value={goodResponses} icon={Star} color="bg-blue-50 text-blue-600" />
+        <StatCard title="Average" value={averageResponses} icon={Star} color="bg-amber-50 text-amber-600" />
+        <StatCard title="Poor" value={poorResponses} icon={Star} color="bg-red-50 text-red-600" />
       </div>
 
       {/* Charts Section */}
@@ -172,6 +196,31 @@ const FormDetail: React.FC = () => {
                 <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Experience Distribution */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-800 mb-6">Experience Distribution</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={experienceDistribution} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                  {experienceDistribution.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-wrap justify-center gap-4 mt-4">
+            {experienceDistribution.map((entry, index) => (
+              <div key={entry.name} className="flex items-center text-sm text-slate-600">
+                <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+                {entry.name} ({entry.value})
+              </div>
+            ))}
           </div>
         </motion.div>
 
@@ -200,17 +249,19 @@ const FormDetail: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Submission Trend */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Submission Trend</h3>
+        {/* Trend (Submissions + Rating) */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-800 mb-6">Trends Over Time</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={submissionTrend}>
+              <LineChart data={trends}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} domain={[0, 5]} />
                 <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                <Line yAxisId="left" type="monotone" name="Submissions" dataKey="count" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
+                <Line yAxisId="right" type="monotone" name="Avg Rating" dataKey="avgRating" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

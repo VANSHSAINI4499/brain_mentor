@@ -11,5 +11,7 @@ exports.submitFeedbackSchema = zod_1.z.object({
     feedback: zod_1.z.string().min(10, 'Feedback must be at least 10 characters'),
     phoneVerified: zod_1.z.boolean().refine((val) => val === true, 'Phone must be verified'),
     emailVerified: zod_1.z.boolean().refine((val) => val === true, 'Email must be verified'),
+    rating: zod_1.z.number().min(1).max(5).optional(),
+    experience: zod_1.z.string().optional(),
 });
 //# sourceMappingURL=submission.js.map
