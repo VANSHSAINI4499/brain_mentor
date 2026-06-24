@@ -1,6 +1,4 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import * as fs from 'fs';
-import * as path from 'path';
 
 export interface CertificateMetadata {
   id: string;
